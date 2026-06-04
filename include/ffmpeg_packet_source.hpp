@@ -1,0 +1,39 @@
+#pragma once
+
+#include "pipeline_types.hpp"
+
+#include <string>
+
+struct AVBSFContext;
+struct AVFormatContext;
+
+class FFmpegPacketSource {
+ public:
+  FFmpegPacketSource() = default;
+  ~FFmpegPacketSource();
+
+  FFmpegPacketSource(const FFmpegPacketSource&) = delete;
+  FFmpegPacketSource& operator=(const FFmpegPacketSource&) = delete;
+
+  void open(const InputSourceConfig& config);
+  EncodedPacket readPacket();
+  VideoCodec codec() const;
+  SourceVideoInfo videoInfo() const;
+  const std::string& inputOptionsSummary() const;
+
+ private:
+  static VideoCodec toVideoCodec(int codecId);
+  void close();
+  bool needsAnnexBFilter() const;
+  void initBitstreamFilter();
+  EncodedPacket copyPacket(const void* packet) const;
+  bool tryReceiveFilteredPacket(EncodedPacket& output);
+
+  AVFormatContext* formatContext_ = nullptr;
+  AVBSFContext* bsfContext_ = nullptr;
+  int videoStreamIndex_ = -1;
+  VideoCodec codec_ = VideoCodec::kUnknown;
+  bool bsfFlushed_ = false;
+  SourceVideoInfo videoInfo_;
+  std::string inputOptionsSummary_;
+};
